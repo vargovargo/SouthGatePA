@@ -12,7 +12,7 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(width = 3, 
-            fileInput('file1', 'Load Purple Air File',
+            fileInput('file1', 'Load Purple Air File (Primary)',
                       accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv'))
         ),
         
@@ -25,7 +25,7 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-    
+    options(shiny.maxRequestSize=30*1024^2) 
    
     
     output$timeseries <- renderDygraph({
@@ -41,8 +41,8 @@ server <- function(input, output) {
     dygraph(xts(foo, order.by = foo$dateTime), main = "PA Sensor")  %>%
         dySeries("PM1.0_CF_ATM_ug/m3", fillGraph = T, drawPoints = F, color = "red", label = "ultrafine")  %>%
         dySeries("PM2.5_CF_ATM_ug/m3", drawPoints = F, color = "gray", label = "fine") %>%
-        dySeries("PM10.0_CF_ATM_ug/m3", drawPoints = F, color = "blue", label = "coarse")  %>%
-        dyRangeSelector(dateWindow = c({lastDay-40000}, lastDay), height = 50)
+        dySeries("PM10.0_CF_ATM_ug/m3", drawPoints = F, color = "blue", label = "coarse") # %>%
+        # dyRangeSelector(dateWindow = c({lastDay-40000}, lastDay), height = 50)
     })
     
 }
