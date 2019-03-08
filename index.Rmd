@@ -1,0 +1,120 @@
+---
+title: "South Gate Purple Air Explorer"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    source: embed
+runtime: shiny
+---
+
+```{r}
+#2019-03-05 - Initial Attempt
+```
+
+```{r global, include=FALSE}
+setwd('~/Dropbox/Ongoing/SouthGatePA')
+Sys.setenv(TZ="America/Los_Angeles")
+
+library(lubridate)
+library(data.table)
+library(plyr)
+library(DT)
+library(dygraphs)
+
+#import data
+input_data <- readRDS('primary_scsgdata.rds')
+setnames(input_data, 'round_dt', 'Timestamp')
+input_data[, Date:=as.Date(Timestamp, tz="America/Los_Angeles")]
+input_data[, station_id:=as.numeric(station_id)]
+long_data <- melt(input_data[, -c('Date')], id.var=c('Timestamp', 'lat', 'long', 'station_id', 'sensor'))
+
+date_filter <- input_data[, unique(Date), by=station_id]
+unique_sensors <- input_data[, unique(station_id)]
+```
+
+Inputs {.sidebar}
+=====================================
+```{r}
+HTML("<br>")
+
+selectInput('sensor', HTML("<strong>Select a sensor</strong><br>"), choices = unique_sensors, selected = 7, multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
+
+output$date_selector <- renderUI({
+  dateRangeInput('date_select', HTML("<strong>Select a Date Range</strong>"), start = date_filter[station_id == input$sensor, min(V1)], end = date_filter[station_id == input$sensor, max(V1)])
+})
+uiOutput('date_selector')
+
+selected_data_pm <- reactive({
+  data <- long_data[!is.na(value) & station_id==input$sensor]
+  data <- dcast.data.table(data[!variable %in% c('Temperature_F', 'Humidity_%')], Timestamp~variable)
+  data
+})
+
+selection1 <- reactive({
+  if (!is.null(input$pm_data_date_window))
+  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[1]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles') - (8 * 60 * 60)
+})
+
+selection2 <- reactive({
+  if (!is.null(input$pm_data_date_window))
+  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[2]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles')- (8 * 60 * 60)
+})  
+
+output$sampleTitle <- renderText({paste("Period Selected: ", paste(selection1(), selection2(), sep=" to "), " PT", sep="")}) 
+```
+
+Data
+=====================================  
+Row {data-height=400}
+-----------------------------------------------------------------------
+### **PM Plot** <br>*Drag to select the range of interest (drag, let the graph refresh, and drag again to zoom in more precisely). <br>Double click anywhere outside of the selected area to zoom back out.* 
+```{r}
+output$pm_data <- renderDygraph({
+  plot_data <- selected_data_pm()[Timestamp %between% c(input$date_select), c('Timestamp', "PM1.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM10.0_CF_ATM_ug/m3","PM2.5_CF_1_ug/m3"), with=F]
+  dygraph(plot_data, group='sgpa')
+})
+dygraphOutput("pm_data")
+```
+
+
+Row {data-height=100}
+-----------------------------------------------------------------------
+### **Statistics for Selected Data**<br>*This table refreshes based on the selection above.* 
+```{r}
+data <- reactive({
+  selected_data_pm()[Timestamp %between% c(selection1(), selection2())]
+})
+
+pm_summary <- reactive({
+  all <- data()[, list(
+    'PM Average' = round(mean(PM),2),
+    'SD' = round(sd(PM),2),
+    'Min' = min(PM),
+    'Median' = median(PM),
+    'Max' = max(PM),
+    'Duration' = round(difftime(max(Timestamp), min(Timestamp), unit='mins'),2),
+    'Start' = min(Timestamp),
+    'Stop' = max(Timestamp),
+    '% < 0' = 100*round(length(which(PM<0))/length(PM))
+    )]
+})
+
+compliance_summary <- reactive({
+    comp <- data()[Compliance>0, list('Compliance' = length(PM))]
+})
+
+total_summary <- reactive({
+  s1 <- cbind(pm_summary(), compliance_summary())
+  s1[, Compliance:=round(100*Compliance/as.numeric(Duration),0)]
+})
+
+DT::renderDataTable({DT::datatable(total_summary(), options = list(dom = 't'))%>% formatDate(c("Start", "Stop"), method = 'toLocaleString')})
+```
+
+Row 
+-----------------------------------------------------------------------
+### **All Data** 
+```{r}
+DT::renderDataTable({DT::datatable(merge(selected_data_pm(), selected_data_compliance(), by='Timestamp'))%>% formatDate("Timestamp", method = 'toLocaleString')})
+```
