@@ -24,6 +24,7 @@ library(dygraphs)
 
 #import data
 input_data <- readRDS('primary_scsgdata.rds')
+input_data[, round_dt:= round_dt - 28800]
 setnames(input_data, 'round_dt', 'Timestamp')
 input_data[, Date:=as.Date(Timestamp, tz="America/Los_Angeles")]
 input_data[, station_id:=as.numeric(station_id)]
@@ -71,7 +72,7 @@ Row {data-height=400}
 ### **PM Plot** <br>*Drag to select the range of interest (drag, let the graph refresh, and drag again to zoom in more precisely). <br>Double click anywhere outside of the selected area to zoom back out.* 
 ```{r}
 output$pm_data <- renderDygraph({
-  plot_data <- selected_data_pm()[Timestamp %between% c(input$date_select), c('Timestamp', "PM1.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM10.0_CF_ATM_ug/m3","PM2.5_CF_1_ug/m3"), with=F]
+  plot_data <- selected_data_pm()[Timestamp %between% c(input$date_select[1], input$date_select[2] + 1), c('Timestamp', "PM1.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM10.0_CF_ATM_ug/m3","PM2.5_CF_1_ug/m3"), with=F]
   dygraph(plot_data, group='sgpa')
 })
 dygraphOutput("pm_data")
