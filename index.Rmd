@@ -3,7 +3,7 @@ title: "South Gate Purple Air Explorer"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
-    vertical_layout: fill
+    vertical_layout: scroll
     source: embed
 runtime: shiny
 ---
@@ -78,7 +78,7 @@ dygraphOutput("pm_data")
 ```
 
 
-Row {data-height=100}
+Row
 -----------------------------------------------------------------------
 ### **Statistics for Selected Data**<br>*This table refreshes based on the selection above.* 
 ```{r}
@@ -87,34 +87,29 @@ data <- reactive({
 })
 
 pm_summary <- reactive({
-  all <- data()[, list(
-    'PM Average' = round(mean(PM),2),
-    'SD' = round(sd(PM),2),
-    'Min' = min(PM),
-    'Median' = median(PM),
-    'Max' = max(PM),
+  long <- melt(data(), id.var = 'Timestamp')
+  long_summary <- long[, list(
+    'Average' = round(mean(value),2),
+    'SD' = round(sd(value),2),
+    'Min' = round(min(value),2),
+    'Median' = round(median(value),2),
+    'Max' = round(max(value),2),
     'Duration' = round(difftime(max(Timestamp), min(Timestamp), unit='mins'),2),
     'Start' = min(Timestamp),
-    'Stop' = max(Timestamp),
-    '% < 0' = 100*round(length(which(PM<0))/length(PM))
-    )]
+    'Stop' = max(Timestamp)
+    ), by='variable']
+  print(long_summary)
 })
 
-compliance_summary <- reactive({
-    comp <- data()[Compliance>0, list('Compliance' = length(PM))]
-})
-
-total_summary <- reactive({
-  s1 <- cbind(pm_summary(), compliance_summary())
-  s1[, Compliance:=round(100*Compliance/as.numeric(Duration),0)]
-})
-
-DT::renderDataTable({DT::datatable(total_summary(), options = list(dom = 't'))%>% formatDate(c("Start", "Stop"), method = 'toLocaleString')})
+DT::renderDataTable({DT::datatable(pm_summary(), options = list(dom = 't'))%>% formatDate(c("Start", "Stop"), method = 'toLocaleString')})
 ```
 
 Row 
 -----------------------------------------------------------------------
 ### **All Data** 
 ```{r}
-DT::renderDataTable({DT::datatable(merge(selected_data_pm(), selected_data_compliance(), by='Timestamp'))%>% formatDate("Timestamp", method = 'toLocaleString')})
+DT::renderDataTable({DT::datatable(selected_data_pm())%>% formatDate("Timestamp", method = 'toLocaleString')})
 ```
+
+Info
+=====================================  
