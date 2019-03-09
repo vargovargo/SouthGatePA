@@ -19,10 +19,13 @@ library(lubridate)
 library(data.table)
 library(plyr)
 library(DT)
+library(ggplot2)
 library(dygraphs)
 library(flexdashboard)
 library(leaflet)
 # install.packages("flexdashboard")
+
+setwd("~/GitHub/SouthGatePA/")
 
 #import data
 input_data <- readRDS('primary_scsgdata.rds')
@@ -48,8 +51,7 @@ output$map <- renderLeaflet({
   sensors_sp[, size := ifelse(station_id == input$sensor, 5, 2)]
   sensors_sp[, color := ifelse(station_id == input$sensor, "red", "gray80")]
   
-  
-  leaflet(data = sensors_sp, width =100, height = 100 , )  %>%
+  leaflet(data = sensors_sp, height = "100" )  %>%
       addProviderTiles(providers$CartoDB.Positron) %>%
       addCircleMarkers(
         radius = ~ size,
@@ -89,7 +91,7 @@ selection2 <- reactive({
 output$sampleTitle <- renderText({paste("Period Selected: ", paste(selection1(), selection2(), sep=" to "), " PT", sep="")}) 
 ```
 
-Data
+Single Monitor View
 =====================================  
 Row {data-height=400}
 -----------------------------------------------------------------------
@@ -136,7 +138,28 @@ Row
 DT::renderDataTable({DT::datatable(selected_data_pm())%>% formatDate("Timestamp", method = 'toLocaleString')})
 ```
 
-Info
+Multi-Monitor View
 =====================================  
+Row {data-height=900}
+-----------------------------------------------------------------------
+### **PM Plot** <br>*Drag to select the range of interest (drag, let the graph refresh, and drag again to zoom in more precisely). <br>Double click anywhere outside of the selected area to zoom back out.* 
+```{r}
 
+selected_dates <- reactive({
+  data <- long_data[!is.na(value) & Timestamp %between% c(input$date_select[1], input$date_select[2] + 1)]
+  data <- dcast.data.table(data[!variable %in% c('Temperature_F', 'Humidity_%')], Timestamp + station_id + variable ~ "value")
+  data[, size := ifelse(station_id == input$sensor, 1.5, 1)]
+  data[, alpha := ifelse(station_id == input$sensor, .8, 0.4)]
+  data
+  
+})
+
+output$pm_25 <- renderPlot({
+  
+  ggplot(data = selected_dates()) + geom_line(aes(x=Timestamp, y= ., alpha = alpha, group= station_id)) + facet_grid(variable~.)
+  
+  
+})
+plotOutput("pm_25")
+```
 
