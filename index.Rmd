@@ -13,9 +13,6 @@ runtime: shiny
 ```
 
 ```{r global, include=FALSE}
-#  setwd('~/Dropbox/Ongoing/SouthGatePA')
-  setwd('~/GitHub/SouthGatePA/')
-
 Sys.setenv(TZ="America/Los_Angeles")
 
 library(lubridate)
@@ -28,9 +25,8 @@ library(flexdashboard)
 
 #import data
 input_data <- readRDS('primary_scsgdata.rds')
-input_data[, round_dt:= round_dt - 28800]
 setnames(input_data, 'round_dt', 'Timestamp')
-input_data[, Timestamp := as.POSIXlt.date(Timestamp)-28800]
+input_data[, Timestamp := Timestamp-28800]
 input_data[, Date:=as.Date(Timestamp, tz="America/Los_Angeles")]
 input_data[, station_id:=as.numeric(station_id)]
 long_data <- melt(input_data[, -c('Date')], id.var=c('Timestamp', 'lat', 'long', 'station_id', 'sensor'))
@@ -59,12 +55,12 @@ selected_data_pm <- reactive({
 
 selection1 <- reactive({
   if (!is.null(input$pm_data_date_window))
-  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[1]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles')
+  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[1]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles') - 28800
 })
 
 selection2 <- reactive({
   if (!is.null(input$pm_data_date_window))
-  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[2]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles')
+  ymd_hms(strftime(gsub(".000Z","",gsub("T"," ",input$pm_data_date_window[[2]])), "%Y-%m-%d %H:%M:%S"), tz='America/Los_Angeles') - 28800 + 3600
 })  
 
 output$sampleTitle <- renderText({paste("Period Selected: ", paste(selection1(), selection2(), sep=" to "), " PT", sep="")}) 
@@ -89,7 +85,7 @@ Row
 ### **Statistics for Selected Data**<br>*This table refreshes based on the selection above.* 
 ```{r}
 data <- reactive({
-  selected_data_pm()[Timestamp %between% c(selection1(), selection2())]
+  selected_data_pm()[Timestamp >= selection1() & Timestamp <= selection2()]
 })
 
 pm_summary <- reactive({
@@ -100,7 +96,7 @@ pm_summary <- reactive({
     'Min' = round(min(value),2),
     'Median' = round(median(value),2),
     'Max' = round(max(value),2),
-    'Duration' = round(difftime(max(Timestamp), min(Timestamp), unit='mins'),2),
+    'Duration (mins)' = round(difftime(max(Timestamp), min(Timestamp), unit='mins'),2),
     'Start' = min(Timestamp),
     'Stop' = max(Timestamp)
     ), by='variable']
