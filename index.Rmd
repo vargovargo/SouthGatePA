@@ -24,6 +24,7 @@ library(plyr)
 library(DT)
 library(dygraphs)
 library(flexdashboard)
+library(leaflet)
 # install.packages("flexdashboard")
 
 #import data
@@ -36,12 +37,34 @@ long_data <- melt(input_data[, -c('Date')], id.var=c('Timestamp', 'lat', 'long',
 
 date_filter <- input_data[, unique(Date), by=station_id]
 unique_sensors <- input_data[, unique(station_id)]
+
+sensors_sp <- input_data[,.(latitude = max(as.numeric(lat)), longitude = max(as.numeric(long))), by = station_id]
 ```
 
 Inputs {.sidebar}
 =====================================
 ```{r}
 HTML("<br>")
+
+output$map <- renderLeaflet({
+  
+  sensors_sp[, size := ifelse(station_id == input$sensor, 5, 2)]
+  sensors_sp[, color := ifelse(station_id == input$sensor, "red", "gray80")]
+  
+  
+  leaflet(data = sensors_sp, width =100, height = 100 , )  %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
+      addCircleMarkers(
+        radius = ~ size,
+        color = ~ color,
+        stroke = FALSE,
+        fillOpacity = 0.7,
+        label = ~ paste0("Station Number: ", station_id),
+        popup = ~ paste0("Station Number: ", station_id)
+      ) 
+})
+
+leafletOutput("map")
 
 selectInput('sensor', HTML("<strong>Select a sensor</strong><br>"), choices = unique_sensors, selected = 7, multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
 
