@@ -48,15 +48,16 @@ HTML("<br>")
 
 output$map <- renderLeaflet({
   
-  sensors_sp[, size := ifelse(station_id == input$sensor, 5, 2)]
-  sensors_sp[, color := ifelse(station_id == input$sensor, "red", "gray80")]
+  sensors_sp[, size := ifelse(station_id == input$sensor, 5, 3)]
+  sensors_sp[, color := ifelse(station_id == input$sensor, "red", "gray50")]
+  sensors_sp[, stroke := ifelse(station_id == input$sensor, 1, 0)]
   
   leaflet(data = sensors_sp, height = "100" )  %>%
-      addProviderTiles(providers$CartoDB.Positron) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>% # CartoDB.Positron  or  OpenStreetMap.BlackAndWhite
       addCircleMarkers(
         radius = ~ size,
         color = ~ color,
-        stroke = FALSE,
+        stroke = ~ stroke,
         fillOpacity = 0.7,
         label = ~ paste0("Station Number: ", station_id),
         popup = ~ paste0("Station Number: ", station_id)
@@ -150,13 +151,14 @@ selected_dates <- reactive({
   data <- dcast.data.table(data[!variable %in% c('Temperature_F', 'Humidity_%')], Timestamp + station_id + variable ~ "value")
   data[, size := ifelse(station_id == input$sensor, 1.5, 1)]
   data[, alpha := ifelse(station_id == input$sensor, .8, 0.4)]
+  data[, color := ifelse(station_id == input$sensor, "red", "gray50")]
   data
   
 })
 
 output$pm_25 <- renderPlot({
   
-  ggplot(data = selected_dates()) + geom_line(aes(x=Timestamp, y= ., alpha = alpha, group= station_id)) + facet_grid(variable~.)
+  ggplot(data = selected_dates()) + geom_line(aes(x=Timestamp, y= ., alpha = alpha, group= station_id)) + facet_grid(variable~., scales = "free_y") + guides(alpha = FALSE) + scale_color_manual(values = color)
   
   
 })
