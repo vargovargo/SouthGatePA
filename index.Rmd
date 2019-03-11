@@ -146,22 +146,100 @@ Row {data-height=900}
 ### **PM Plot** <br>*Drag to select the range of interest (drag, let the graph refresh, and drag again to zoom in more precisely). <br>Double click anywhere outside of the selected area to zoom back out.* 
 ```{r}
 
-selected_dates <- reactive({
+
+#create ggplot of the 4 pollutant types showing timeline of all monitors and highlighting the selected monitor
+# selected_dates <- reactive({
+#   data <- long_data[!is.na(value) & Timestamp %between% c(input$date_select[1], input$date_select[2] + 1)]
+#   data <- dcast.data.table(data[!variable %in% c('Temperature_F', 'Humidity_%')], Timestamp + station_id + variable ~ "value")
+#   data[, size := ifelse(station_id == input$sensor, 1.5, 1)]
+#   data[, alpha := ifelse(station_id == input$sensor, .8, 0.4)]
+#   data[, color := ifelse(station_id == input$sensor, "red", "gray50")]
+#   data
+#   
+# })
+# 
+# output$pm_25 <- renderPlot({
+#   
+#   ggplot(data = selected_dates()) + geom_line(aes(x=Timestamp, y= ., alpha = alpha, group= station_id)) + facet_grid(variable~., scales = "free_y") + guides(alpha = FALSE) + scale_color_manual(values = color)
+#   
+#   
+# })
+# plotOutput("pm_25")
+
+map_data <- reactive({
   data <- long_data[!is.na(value) & Timestamp %between% c(input$date_select[1], input$date_select[2] + 1)]
-  data <- dcast.data.table(data[!variable %in% c('Temperature_F', 'Humidity_%')], Timestamp + station_id + variable ~ "value")
+  data <- data[!variable %in% c('Temperature_F', 'Humidity_%')]
+  data <- data[, .(lat = mean(as.numeric(lat)), long = mean(as.numeric(long)), min = min(value), avg=mean(value), max = max(value)), by= .(station_id, variable)]
+  data <- melt.data.table(data = data, id.vars = c('station_id',"lat","long","variable"), variable.name = "stat")
+  data <- data[, display := paste0(variable,"_", stat)]
+  data <- dcast.data.table(data = data, formula = station_id + lat + long  ~ display, value.var = "value")
   data[, size := ifelse(station_id == input$sensor, 1.5, 1)]
-  data[, alpha := ifelse(station_id == input$sensor, .8, 0.4)]
+  data[, stroke := ifelse(station_id == input$sensor,3, 0)]
   data[, color := ifelse(station_id == input$sensor, "red", "gray50")]
   data
-  
+
 })
 
-output$pm_25 <- renderPlot({
+
+output$bigMap <- renderLeaflet({
   
-  ggplot(data = selected_dates()) + geom_line(aes(x=Timestamp, y= ., alpha = alpha, group= station_id)) + facet_grid(variable~., scales = "free_y") + guides(alpha = FALSE) + scale_color_manual(values = color)
   
-  
+  palPM1 <- colorBin(palette = c("yellow","orange","red"), domain = map_data()$`PM1.0_CF_ATM_ug/m3_avg`, bins = 3)
+palPM10 <- colorBin(palette = c("yellow","orange","red"), domain = map_data()$`PM10.0_CF_ATM_ug/m3_avg`, bins = 3)
+palPM251 <- colorBin(palette = c("yellow","orange","red"), domain = map_data()$`PM2.5_CF_1_ug/m3_avg`, bins = 3)
+palPM25 <- colorBin(palette = c("yellow","orange","red"), domain = map_data()$`PM2.5_CF_ATM_ug/m3_avg`, bins = 3)
+
+
+ leaflet(data = map_data())  %>%
+      addProviderTiles(providers$CartoDB.Positron) %>% # CartoDB.Positron  or  OpenStreetMap.BlackAndWhite
+       addCircleMarkers(
+        radius = 8,
+        color = ~ palPM10(`PM10.0_CF_ATM_ug/m3_avg`),
+        stroke = ~ stroke,
+        fillOpacity = 0.7, group = "PM10.0_CF_ATM_ug/m3", 
+        label = ~ paste0("Average: ", round(`PM10.0_CF_ATM_ug/m3_avg`, 2), "ug/m3 (min: ",round(`PM10.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM10.0_CF_ATM_ug/m3_max`, 2),")"),
+        popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM10.0_CF_ATM_ug/m3_avg`, 2), " (min: ",round(`PM10.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM10.0_CF_ATM_ug/m3_max`, 2),")")
+      ) %>%
+    addCircleMarkers(
+        radius = 8,
+        color = ~ palPM25(`PM2.5_CF_ATM_ug/m3_avg`),
+        stroke = ~ stroke,
+        fillOpacity = 0.7, group = "PM2.5_CF_ATM_ug/m3", 
+        label = ~ paste0("Average: ", round(`PM2.5_CF_ATM_ug/m3_avg`, 2), "ug/m3 (min: ",round(`PM2.5_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM2.5_CF_ATM_ug/m3_max`, 2),")"),
+        popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM2.5_CF_ATM_ug/m3_avg`, 2), " (min: ",round(`PM2.5_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM2.5_CF_ATM_ug/m3_max`, 2),")")
+      ) %>%
+    addCircleMarkers(
+        radius = 8,
+        color = ~ palPM251(`PM2.5_CF_1_ug/m3_avg`),
+        stroke = ~ stroke,
+        fillOpacity = 0.7, group = "PM2.5_CF_1_ug/m3", 
+        label = ~ paste0("Average: ", round(`PM2.5_CF_1_ug/m3_avg`, 2), "ug/m3 (min: ",round(`PM2.5_CF_1_ug/m3_min`, 2)," - max: ", round(`PM2.5_CF_1_ug/m3_max`, 2),")"),
+        popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM2.5_CF_1_ug/m3_avg`, 2), " (min: ",round(`PM2.5_CF_1_ug/m3_min`, 2)," - max: ", round(`PM2.5_CF_1_ug/m3_max`, 2),")")
+      ) %>%
+   addCircleMarkers(
+        radius = 8,
+        color = ~ palPM1(`PM1.0_CF_ATM_ug/m3_avg`),
+        stroke = ~ stroke,
+        fillOpacity = 0.7, group = "PM1.0_CF_ATM_ug/m3", 
+        label = ~ paste0("Average: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), "ug/m3 (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")"),
+        popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), " (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")")
+      ) %>%
+  addLayersControl(
+    baseGroups = c("PM10.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM2.5_CF_1_ug/m3", "PM1.0_CF_ATM_ug/m3"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+ # %>%
+ #   addLegend("bottomright", pal = palPM10, values = c("low","medium","high"),
+ #    title = "Average PM",
+ #    labFormat = labelFormat(suffix = "ug/m3"),
+ #    opacity = 1
+ #  )
+     
+
 })
-plotOutput("pm_25")
+ 
+leafletOutput("bigMap")
+
+
 ```
 
