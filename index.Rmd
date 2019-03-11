@@ -89,6 +89,12 @@ selection2 <- reactive({
 output$sampleTitle <- renderText({paste("Period Selected: ", paste(selection1(), selection2(), sep=" to "), " PT", sep="")}) 
 ```
 
+Introduction
+=====================================
+### This app is meant for **exploration only**. There are no legal air quality determinations that can be made from it. <br>
+The intention of this app is for users to examine data from Purple Air Monitors set up around the South Gate Community. <br>
+Users can [isolate single sensors and windows of time](#single-monitor-view) to see summary statistics, [compare monitors on a map](#multi-monitor-view), or further analyze the data.
+
 Single Monitor View
 =====================================  
 Row {data-height=400}
@@ -140,10 +146,7 @@ Multi-Monitor View
 =====================================  
 Row {data-height=900}
 -----------------------------------------------------------------------
-<<<<<<< HEAD
-### **PM Map** <br>*Based on the selections made in the [Single Monitor View](#section-single-monitor-view), this map shows the average value for the selected pollutant.* 
-=======
-
+### **PM Map** <br>*Based on the selections made in the [Single Monitor View](#single-monitor-view), this map shows the average value for the selected pollutant.* 
 ```{r}
 
 map_data <- reactive({
@@ -200,17 +203,35 @@ output$bigMap <- renderLeaflet({
         fillOpacity = 0.7, group = "PM1.0_CF_ATM_ug/m3", 
         label = ~ paste0("Average: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), " ug/m3 (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")"),
         popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), " (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")")
-      ) %>%
+      )  %>%
+  #  addLegend("bottomleft", pal = palPM10, values = ~`PM10.0_CF_ATM_ug/m3_avg`,
+  #   title = "Average PM10.0_CF_ATM_ug/m3",
+  #   group = "PM10.0_CF_ATM_ug/m3",
+  #   labFormat = labelFormat(suffix = "ug/m3"),
+  #   opacity = 1
+  # )  %>%
+  #  addLegend("bottomleft", pal = palPM25, values = ~`PM2.5_CF_ATM_ug/m3_avg`,
+  #   title = "Average PM2.5_CF_ATM_ug/m3",
+  #   group = "PM2.5_CF_ATM_ug/m3",
+  #   labFormat = labelFormat(suffix = "ug/m3"),
+  #   opacity = 1
+  # )  %>%
+  #  addLegend("bottomleft", pal = palPM251, values = ~`PM2.5_CF_1_ug/m3_avg`,
+  #   title = "Average PM2.5_CF_1_ug/m3",
+  #   group = "PM2.5_CF_1_ug/m3",
+  #   labFormat = labelFormat(suffix = "ug/m3"),
+  #   opacity = 1
+  # )  %>%
+  #  addLegend("bottomleft", pal = palPM1, values = ~`PM1.0_CF_ATM_ug/m3_avg`,
+  #   title = "Average PM1.0_CF_ATM_ug/m3",
+  #   group = "PM1.0_CF_ATM_ug/m3",
+  #   labFormat = labelFormat(suffix = "ug/m3"),
+  #   opacity = 1
+  # )%>%
   addLayersControl(
     baseGroups = c("PM10.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM2.5_CF_1_ug/m3", "PM1.0_CF_ATM_ug/m3"),
     options = layersControlOptions(collapsed = FALSE)
   )
- # %>%
- #   addLegend("bottomright", pal = palPM10, values = c("low","medium","high"),
- #    title = "Average PM",
- #    labFormat = labelFormat(suffix = "ug/m3"),
- #    opacity = 1
- #  )
      
 
 })
