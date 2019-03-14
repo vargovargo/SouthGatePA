@@ -8,10 +8,6 @@ output:
 runtime: shiny
 ---
 
-```{r}
-#created by Ajay Pillarisetti and Jason Vargo
-```
-
 ```{r global, include=FALSE}
 Sys.setenv(TZ="America/Los_Angeles")
 
