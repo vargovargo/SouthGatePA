@@ -200,30 +200,6 @@ output$bigMap <- renderLeaflet({
         label = ~ paste0("Average: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), " ug/m3 (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")"),
         popup = ~ paste0("Station Number: ", station_id, "  \n  The Average value for this station in the selected time period is: ", round(`PM1.0_CF_ATM_ug/m3_avg`, 2), " (min: ",round(`PM1.0_CF_ATM_ug/m3_min`, 2)," - max: ", round(`PM1.0_CF_ATM_ug/m3_max`, 2),")")
       )  %>%
-  #  addLegend("bottomleft", pal = palPM10, values = ~`PM10.0_CF_ATM_ug/m3_avg`,
-  #   title = "Average PM10.0_CF_ATM_ug/m3",
-  #   group = "PM10.0_CF_ATM_ug/m3",
-  #   labFormat = labelFormat(suffix = "ug/m3"),
-  #   opacity = 1
-  # )  %>%
-  #  addLegend("bottomleft", pal = palPM25, values = ~`PM2.5_CF_ATM_ug/m3_avg`,
-  #   title = "Average PM2.5_CF_ATM_ug/m3",
-  #   group = "PM2.5_CF_ATM_ug/m3",
-  #   labFormat = labelFormat(suffix = "ug/m3"),
-  #   opacity = 1
-  # )  %>%
-  #  addLegend("bottomleft", pal = palPM251, values = ~`PM2.5_CF_1_ug/m3_avg`,
-  #   title = "Average PM2.5_CF_1_ug/m3",
-  #   group = "PM2.5_CF_1_ug/m3",
-  #   labFormat = labelFormat(suffix = "ug/m3"),
-  #   opacity = 1
-  # )  %>%
-  #  addLegend("bottomleft", pal = palPM1, values = ~`PM1.0_CF_ATM_ug/m3_avg`,
-  #   title = "Average PM1.0_CF_ATM_ug/m3",
-  #   group = "PM1.0_CF_ATM_ug/m3",
-  #   labFormat = labelFormat(suffix = "ug/m3"),
-  #   opacity = 1
-  # )%>%
   addLayersControl(
     baseGroups = c("PM10.0_CF_ATM_ug/m3", "PM2.5_CF_ATM_ug/m3", "PM2.5_CF_1_ug/m3", "PM1.0_CF_ATM_ug/m3"),
     options = layersControlOptions(collapsed = FALSE)
